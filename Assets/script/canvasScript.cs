@@ -1,16 +1,20 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
 using System.IO;
+using System.Collections.Generic; // Dictionary class
 
 public class canvasScript : MonoBehaviour {
 
-    public GameObject CanvasImage;  // attach "Assets/prefab/CanvasImage"
-    
-    Vector2 a1 = new Vector2(841f, 595f);
-    public prefecture[] imagePrefecture = new prefecture[47];
-       
+    /* Attach "Assets/prefab/CanvasImage" */
+    public GameObject CanvasImage;
+    /* Hashtable ( key : prefecture name ) */
+    public Dictionary<string, prefecture> prefTable = new Dictionary<string, prefecture>();
+
+    /* for debug variables */
+    int tick = 0;
     GameObject puzzle;
+    Vector2 a1 = new Vector2(841f, 595f);
+
 
     public class prefecture
     {
@@ -18,21 +22,60 @@ public class canvasScript : MonoBehaviour {
         public string name;
         public GameObject image;
         public GameObject text;
+        public float deltaAlpha;
+        public float alpha {
+            get {
+                return image.GetComponent<Image>().color.a;
+            }
+            set {
+                Color tmp = image.GetComponent<Image>().color;
+                tmp.a = value;
+                if (tmp.a > 1)
+                {
+                    tmp.a = 1;
+                    deltaAlpha = 0;
+                }
+                else if (tmp.a < 0)
+                {
+                    tmp.a = 0;
+                    deltaAlpha = 0;
+                }
+                image.GetComponent<Image>().color = tmp;
+                text.GetComponent<Image>().color = tmp;
+            }
+        }
     }
 
-    // Use this for initialization
+    
     void Start () {        
         initPrefecture();
     }
-
-    // Update is called once per frame
+    
     void Update () {
-	    
-	}
+        tick++;
+        updatePrefecture();
+    }
+
+    void updatePrefecture()
+    {
+        foreach (KeyValuePair<string, prefecture> item in prefTable) {
+            item.Value.alpha += item.Value.deltaAlpha;
+
+            if ((tick % 200) == 0)
+            {
+                item.Value.deltaAlpha = -0.02f;
+            }
+            else if ((tick % 200) == 100)
+            {
+                item.Value.deltaAlpha = 0.02f;
+            }
+        }
+    }
 
     void initPrefecture()
     {
-        puzzle = addImage("japan", "Texture/japan4", new Vector2(-40, 0), a1);
+        //puzzle = addImage("japan", "Texture/japan4", new Vector2(-40, 0), new Vector2(841f, 595f));
+
         TextAsset csv = Resources.Load("CSV/prefectureData") as TextAsset;
         StringReader reader = new StringReader(csv.text);
         Vector2 textSize = new Vector2(35f, 15f);
@@ -44,21 +87,22 @@ public class canvasScript : MonoBehaviour {
             string line = reader.ReadLine();
             string[] values = line.Split(',');
 
-            imagePrefecture[i] = new prefecture();
-            imagePrefecture[i].name = values[0];
-            imagePrefecture[i].pos.x = int.Parse(values[1]);
-            imagePrefecture[i].pos.y = int.Parse(values[2]);
-            
-                imagePrefecture[i].image = addImage(
-                    imagePrefecture[i].name,
-                    "Texture/Prefecture/Image/" + imagePrefecture[i].name + "1",
-                    imagePrefecture[i].pos,
-                    imageSize);
-                imagePrefecture[i].text = addImage(
-                    imagePrefecture[i].name + "Text",
-                    "Texture/Prefecture/text/" + imagePrefecture[i].name,
-                    imagePrefecture[i].pos + new Vector2(0f, -20f),
-                    textSize);
+            prefecture tmp = new prefecture();
+            tmp.name = values[0];
+            tmp.pos.x = int.Parse(values[1]);
+            tmp.pos.y = int.Parse(values[2]);
+            tmp.image = addImage(
+                 tmp.name,
+                 "Texture/Prefecture/Image/" + tmp.name + "1",
+                 tmp.pos,
+                 imageSize);
+            tmp.text = addImage(
+                tmp.name + "Text",
+                "Texture/Prefecture/text/" + tmp.name,
+                tmp.pos + new Vector2(0f, -20f),
+                textSize);
+            tmp.alpha = 0f;
+            prefTable.Add(values[0], tmp);
         }
     }
     
@@ -78,20 +122,4 @@ public class canvasScript : MonoBehaviour {
         return pic;
     }
 
-    GameObject addtext(string objectName, string path, Vector2 pos, Vector2 size)
-    {
-        GameObject t = (GameObject)Instantiate(CanvasImage);
-        Transform picTransform = t.GetComponent<Transform>();
-        Image picImage = t.GetComponent<Image>();
-        Sprite spriteImage = Resources.Load(path, typeof(Sprite)) as Sprite;
-
-        picImage.sprite = spriteImage;
-        picTransform.SetParent(this.transform, false);
-
-        t.name = objectName;
-        picTransform.localPosition = new Vector3(pos.x, pos.y, 0);
-        picTransform.localScale = new Vector3(size.x, size.y, 0);
-
-        return t;
-    }
 }
