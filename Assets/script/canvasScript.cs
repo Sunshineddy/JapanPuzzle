@@ -3,6 +3,15 @@ using UnityEngine.UI;
 using System.IO;
 using System.Collections.Generic; // Dictionary class
 
+
+public static class Define {
+    public const float INIT_IMAGE_ALPHA = 1f;
+    public const float INIT_TEXT_ALPHA = 1f;
+    public const float INIT_TEXT_OFFSET_X = 0f;
+    public const float INIT_TEXT_OFFSET_Y = -20f;
+}
+
+
 public class canvasScript : MonoBehaviour {
 
     /* Attach "Assets/prefab/CanvasImage" */
@@ -16,26 +25,85 @@ public class canvasScript : MonoBehaviour {
 
     public class prefecture
     {
-        Vector2 posBack;
-        string imagePathBack;
-        Vector2 textOffsetBack;
+        
         public GameObject imageObject;
-        public GameObject textObject;
         public Transform imageTransform;
-        public Transform textTransform;
         public Image imageImage;
-        public Image textImage;
-
-        public Vector2 pos {
-            get {
+        Vector2 posBack;
+        public Vector2 pos
+        {
+            get
+            {
                 return posBack;
             }
-            set {
+            set
+            {
                 posBack = value;
                 imageTransform.localPosition = new Vector3(value.x, value.y, 0);
-                textTransform.localPosition = new Vector3(value.x+textOffset.x, value.y+textOffset.y, 0);
+                textTransform.localPosition = new Vector3(value.x + textOffset.x, value.y + textOffset.y, 0);
             }
         }
+        public string imageName
+        {
+            get
+            {
+                return imageObject.name;
+            }
+            set
+            {
+                imageObject.name = value;
+            }
+        }
+        public float imageAlpha
+        {
+            get
+            {
+                return imageObject.GetComponent<Image>().color.a;
+            }
+            set
+            {
+                Color tmp = imageObject.GetComponent<Image>().color;
+                tmp.a = value;
+                if (tmp.a >= 1)
+                {
+                    tmp.a = 1;
+                    deltaImageAlpha = 0;
+                }
+                else if (tmp.a <= 0)
+                {
+                    tmp.a = 0;
+                    deltaImageAlpha = 0;
+                }
+                imageObject.GetComponent<Image>().color = tmp;
+            }
+        }
+        public float deltaImageAlpha;
+        string imagePathBack;
+        public string imagePath
+        {
+            get
+            {
+                return imagePathBack;
+            }
+            set
+            {
+                imagePathBack = value;
+                imageObject.GetComponent<Image>().sprite = Resources.Load(value, typeof(Sprite)) as Sprite;
+            }
+        }
+        public Vector2 imageSize {
+            get {
+                return imageTransform.localScale;
+            }
+            set {
+                imageTransform.localScale = value;
+            }
+        }
+
+        public GameObject textObject;
+        public Transform textTransform;
+        public Image textImage;
+        Vector2 textOffsetBack;
         public Vector2 textOffset
         {
             get
@@ -48,29 +116,14 @@ public class canvasScript : MonoBehaviour {
                 textTransform.localPosition = imageTransform.localPosition + new Vector3(textOffsetBack.x, textOffsetBack.y);
             }
         }
-        public string name;
-        public float deltaImageAlpha;
-        public float imageAlpha {
+        public string textName {
             get {
-                return imageObject.GetComponent<Image>().color.a;
+                return textObject.name;
             }
             set {
-                Color tmp = imageObject.GetComponent<Image>().color;
-                tmp.a = value;
-                if (tmp.a > 1)
-                {
-                    tmp.a = 1;
-                    deltaImageAlpha = 0;
-                }
-                else if (tmp.a < 0)
-                {
-                    tmp.a = 0;
-                    deltaImageAlpha = 0;
-                }
-                imageObject.GetComponent<Image>().color = tmp;
+                textObject.name = value;
             }
         }
-        public float deltaTextAlpha;
         public float textAlpha
         {
             get
@@ -94,17 +147,74 @@ public class canvasScript : MonoBehaviour {
                 textObject.GetComponent<Image>().color = tmp;
             }
         }
-        public string imagePath {
-            get {
-                return imagePathBack;
+        public float deltaTextAlpha;
+        string textPathBack;
+        public string textPath
+        {
+            get
+            {
+                return textPathBack;
             }
-            set {
-                imagePathBack = value;
-                imageObject.GetComponent<Image>().sprite = Resources.Load(value, typeof(Sprite)) as Sprite;
+            set
+            {
+                textPathBack = value;
+                textObject.GetComponent<Image>().sprite = Resources.Load(value, typeof(Sprite)) as Sprite;
             }
         }
-    }
+        public Vector2 textSize
+        {
+            get
+            {
+                return imageTransform.localScale;
+            }
+            set
+            {
+                imageTransform.localScale = value;
+            }
+        }
 
+        /* constructor */
+        public prefecture(GameObject prefab,
+                          Transform parent, 
+                          string imagePath,
+                          string textPath,
+                          string name,
+                          Vector2 pos,
+                          Vector2 imageSize,
+                          Vector2 textSize) {
+            initObject(prefab, parent);
+            this.pos = pos;
+            textOffset = new Vector2(Define.INIT_TEXT_OFFSET_X, Define.INIT_TEXT_OFFSET_Y);
+
+            imageName = name;
+            imageAlpha = Define.INIT_IMAGE_ALPHA;
+            deltaImageAlpha = 0f;
+            this.imagePath = imagePath;
+            imageTransform.localScale = imageSize;
+            
+
+            textName = name + "Text";
+            textAlpha = Define.INIT_TEXT_ALPHA;
+            deltaImageAlpha = 0f;
+            this.textPath = textPath;
+            textTransform.localScale = textSize;
+        }
+
+        /* for initPrefecture */
+        void initObject(GameObject prefab, Transform parent)
+        {
+            this.imageObject = (GameObject)Instantiate(prefab);
+            this.imageTransform = this.imageObject.GetComponent<Transform>();
+            this.imageImage = this.imageObject.GetComponent<Image>();
+            this.imageTransform.SetParent(parent, false);
+
+            this.textObject = (GameObject)Instantiate(prefab);
+            this.textTransform = this.textObject.GetComponent<Transform>();
+            this.textImage = this.textObject.GetComponent<Image>();
+            this.textTransform.SetParent(parent, false);
+        }
+    }
+    
     
     void Start ()
     {
@@ -132,14 +242,12 @@ public class canvasScript : MonoBehaviour {
             else if ((tick % 200) == 100)
             {
                 item.Value.deltaTextAlpha = 0.02f;
-            }
-            */
+            }*/
         }
     }
 
     void initPrefecture()
     {
-
         TextAsset csv = Resources.Load("CSV/prefectureData") as TextAsset;
         StringReader reader = new StringReader(csv.text);
         Vector2 textSize = new Vector2(35f, 15f);
@@ -151,45 +259,21 @@ public class canvasScript : MonoBehaviour {
             string line = reader.ReadLine();
             string[] values = line.Split(',');
 
-            prefecture tmp = new prefecture();
-            tmp.name = values[0];
-            tmp.imageObject = addImage(
-                 tmp.name,
-                 "Texture/Prefecture/Image/" + tmp.name + "1",
-                 imageSize);
-            tmp.textObject = addImage(
-                tmp.name + "Text",
-                "Texture/Prefecture/text/" + tmp.name,
-                textSize);
-            tmp.imageImage = tmp.imageObject.GetComponent<Image>();
-            tmp.textImage = tmp.textObject.GetComponent<Image>();
-            tmp.imageTransform = tmp.imageObject.GetComponent<Transform>();
-            tmp.textTransform = tmp.textObject.GetComponent<Transform>();
-            tmp.pos = new Vector2(int.Parse(values[1]), int.Parse(values[2]));
-            tmp.textOffset = new Vector2(0f, -20f);
-            tmp.imageAlpha = 1f;
-
+            prefecture tmp = new prefecture(
+                CanvasImage,
+                this.transform,
+                "Texture/Prefecture/Image/" + values[0] + "1",
+                "Texture/Prefecture/text/" + values[0],
+                values[0],
+                new Vector2(int.Parse(values[1]), int.Parse(values[2])),
+                imageSize,
+                textSize
+                );                              
+            
             prefTable.Add(values[0], tmp);
         }
     }
 
-    
-    /* for initPrefecture */
-    GameObject addImage(string objectName, string path, Vector2 size)
-    {
-        GameObject pic = (GameObject)Instantiate(CanvasImage);
-        Transform picTransform = pic.GetComponent<Transform>();
-        Image picImage = pic.GetComponent<Image>();
-        Sprite spriteImage = Resources.Load(path, typeof(Sprite)) as Sprite;
-
-        picImage.sprite = spriteImage;
-        picTransform.SetParent(this.transform, false);
-
-        pic.name = objectName;
-        picTransform.localScale = new Vector3(size.x, size.y, 0);
-
-        return pic;
-    }
 
     /* for general image */
     GameObject addImage(string objectName, string path, Vector2 size, Vector2 pos)
