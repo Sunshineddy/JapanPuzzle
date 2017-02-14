@@ -80,6 +80,7 @@
     <Compile Include="Assets\KinectView\Scripts\InfraredSourceView.cs" />
     <Compile Include="Assets\KinectView\Scripts\MultiSourceManager.cs" />
     <Compile Include="Assets\script\AnimationTest.cs" />
+    <Compile Include="Assets\script\CanvasScript2.cs" />
     <Compile Include="Assets\script\PrefectureScript.cs" />
     <Compile Include="Assets\script\canvasScript.cs" />
   </ItemGroup>
