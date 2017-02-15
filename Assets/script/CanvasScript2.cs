@@ -10,9 +10,7 @@ public class CanvasScript2 : MonoBehaviour
     public Dictionary<string, Prefecture> prefTable = new Dictionary<string, Prefecture>();
     public GeneralImage puzzle;
     int tick = 0;
-    // アニメーション1回だけ出して消える画像クラス、未完成
-    // public InfoEffect infoTest; 
-
+    
     public static class DefineGeneralImage
     {
         public const float INIT_ALPHA = 1f;
@@ -28,8 +26,8 @@ public class CanvasScript2 : MonoBehaviour
         // icon configuration
         public const float INIT_ICON_POSITION_X = 30f;
         public const float INIT_ICON_POSITION_Y = 30f;
-        public const float INIT_ICON_SCALE_X = 4f;
-        public const float INIT_ICON_SCALE_Y = 4f;
+        public const float INIT_ICON_SCALE_X = 5f;
+        public const float INIT_ICON_SCALE_Y = 5f;
         // text configuration
         public const float INIT_TEXT_OFFSET_X = 0f;
         public const float INIT_TEXT_OFFSET_Y = -5f;
@@ -38,11 +36,22 @@ public class CanvasScript2 : MonoBehaviour
         // puzzle configuration
         public const float INIT_PUZZLE_POSITION_X = 0f;
         public const float INIT_PUZZLE_POSITION_Y = -20f;
-        public const float INIT_PUZZLE_SCALE_X = 45f;
-        public const float INIT_PUZZLE_SCALE_Y = 45f;
+        public const float INIT_PUZZLE_SCALE_X = 35f;
+        public const float INIT_PUZZLE_SCALE_Y = 35f;
         public const string INIT_PUZZLE_PATH = "Texture/japan5";
         public const string INIT_PUZZLE_NAME = "japan";
     }
+
+    /*
+    public static class DefineRipple {
+        public const int POP_TIMES = 3;
+        public const int POP_TERM = 50;
+        public const float INIT_DELTA_ALPHA = -0.005f;
+        public const float INIT_DELTA_SCALE_X = 0.17f;
+        public const float INIT_DELTA_SCALE_Y = 0.17f;
+        public const int INIT_ORDER = 500;
+    }
+    */
 
     public class ResourceStore<T> where T : class
     {
@@ -113,7 +122,7 @@ public class CanvasScript2 : MonoBehaviour
             }
         }
         string pathBack;
-        public string path
+        public virtual string path
         {
             get
             {
@@ -208,6 +217,14 @@ public class CanvasScript2 : MonoBehaviour
             animation.AddClip(clip, path);
             animation.Play(path);
         }
+
+        public void spriteResize(float size) {
+            float x = spriterenderer.bounds.size.x;
+            float y = spriterenderer.bounds.size.y;
+            float t;
+            t = x > y ? size / x : size / y;
+            scale = Vector2.one * t;
+        }
     }
 
     public class Prefecture
@@ -252,18 +269,27 @@ public class CanvasScript2 : MonoBehaviour
                                          */
         }
     }
-    
-    /* 設計中
-    public class InfoEffect : GeneralImage
+
+    public List<Effect> effectList = new List<Effect>();
+    public class Effect : GeneralImage
     {
-        
-        public InfoEffect(GameObject prefab,
+        int count = 0;
+        int currentImage = 1;
+        int interval;
+        bool endFlag = false;
+        public override string path {
+            get;
+            set;
+        }
+
+        public Effect(GameObject prefab,
                         Transform parent,
                         string path,
                         string name,
                         Vector2 pos,
                         Vector2 scale,
-                        int order) : base(
+                        int order,
+                        int interval) : base(
                         prefab,
                         parent,
                         path,
@@ -271,14 +297,133 @@ public class CanvasScript2 : MonoBehaviour
                         pos,
                         scale,
                         order) {
+            this.interval = interval;
+            
+            //Debug.Log(path + "1");
+            spriterenderer.sprite = spriteStore.get(path + "1");
+            //int i = 1;
+            //while (System.IO.File.Exists(path+i.ToString())) i++;
             
         }
+
+        public void updateEffect()
+        {
+            count++;
+            if (count >= interval){
+                count = 0;
+                currentImage++;
+                Sprite tmp = spriteStore.get(path + currentImage.ToString());
+                if (tmp == null)
+                {
+                    Destroy(obj);
+                    obj = null;
+                    Destroy(objP);
+                    objP = null;
+                    endFlag = true;
+                    return;
+                }
+                spriterenderer.sprite = spriteStore.get(path + currentImage.ToString());
+            }
+        }
+
+        public bool getEndFlag() {
+            return endFlag;
+        }
     }
-    */
+    
+    public List<Ripple> rippleList = new List<Ripple>();
+    public class Ripple {
+        List<GeneralImage> imgList = new List<GeneralImage>();
+        int count = 0;
+        int id = 1;
+        bool endFlag = false;
+        int popTime;
+        int popTerm;
+        Vector2 deltaScale;
+        float deltaAlpha;
+
+        GameObject prefab;
+        Transform parent;
+        string imagePath;
+        string name;
+        Vector2 pos;
+        //Vector2 scale;
+        int order;
+        //int popTerm;
+
+        public Ripple(GameObject prefab,
+                      Transform parent,
+                      string imagePath,
+                      string name,
+                      Vector2 pos,
+                      int order,
+                      int popTime,
+                      int popTerm,
+                      float deltaAlpha,
+                      Vector2 deltaScale)
+        { 
+                      //int popTerm) {
+            this.prefab = prefab;
+            this.parent = parent;
+            this.imagePath = imagePath;
+            this.name = "ripple_" + name;
+            this.pos = pos;
+            //scale = Vector2.zero;
+            this.order = order;
+            this.popTime = popTime;
+            this.popTerm = popTerm;
+            this.deltaScale = deltaScale;
+            this.deltaAlpha = deltaAlpha;
+        }
+
+        public void addRippleList() {
+            count++;
+            GeneralImage template = new GeneralImage(prefab,
+                                    parent,
+                                    imagePath,
+                                    name + id.ToString(),
+                                    pos,
+                                    Vector2.zero,
+                                    order + id);
+            template.alpha = 1f;
+            imgList.Add(template);
+            id++;
+        }
+
+        public void updateRipple() {
+            //if (count % popTerm == 0 && id <= DefineRipple.POP_TIMES) { 
+            //if (count % DefineRipple.POP_TERM == 0 && id <= DefineRipple.POP_TIMES){
+            if (count % popTerm == 0 && id <= popTime)
+            {
+               addRippleList();
+            }
+            for (int i = 0; i < imgList.Count; i++) {
+                imgList[i].scale += deltaScale;
+                imgList[i].alpha += deltaAlpha;
+                if ( imgList[i].alpha <= 0f ) {
+                    Destroy(imgList[i].obj);
+                    imgList[i].obj = null;
+                    Destroy(imgList[i].objP);
+                    imgList[i].objP = null;
+                    imgList.Remove(imgList[i]);
+                    i--;
+                    if (imgList.Count == 0) {
+                        endFlag = true;
+                    }
+                }
+            }
+            count++;
+        }
+
+        public bool getEndFlag() {
+            return endFlag;
+        }
+    }
 
     // Use this for initialization
     void Start()
     {
+        // init puzzle
         puzzle = new GeneralImage(
                             prefab,
                             this.transform,
@@ -290,18 +435,41 @@ public class CanvasScript2 : MonoBehaviour
                                         DefineCanvasScript.INIT_PUZZLE_SCALE_Y),
                             0);
         puzzle.alpha = 1f;
+
+        //init prefecture
         initPrefecture();
-        
     }
 
     // Update is called once per frame
     void Update()
     {
         tick++;
+
+        // alpha update
+        foreach (KeyValuePair<string, Prefecture> pref in prefTable) {
+            pref.Value.image.alpha += pref.Value.image.deltaAlpha;
+            pref.Value.text.alpha += pref.Value.text.deltaAlpha;
+        }
         puzzle.alpha += puzzle.deltaAlpha;
 
-        updateTest();
+        // ripple update
+        for (int i = 0; i < rippleList.Count; i++) {
+            rippleList[i].updateRipple();
+            if (rippleList[i].getEndFlag())
+            {
+                rippleList.Remove(rippleList[i]);
+            }
+        }
 
+        // effect update
+        for (int i = 0; i < effectList.Count; i++) {
+            effectList[i].updateEffect();
+            if (effectList[i].getEndFlag()) {
+                effectList.Remove(effectList[i]);
+            }
+        }
+
+        updateTest();
     }
 
     void initPrefecture()
@@ -335,57 +503,96 @@ public class CanvasScript2 : MonoBehaviour
 
         initTest();
     }
-
+    
     // テスト用メソッド
     void initTest() {
         // アニメーションのテスト
         /*
         foreach (KeyValuePair<string, Prefecture> pref in prefTable)
         {
-            pref.Value.image.playAnimation("Animation/Yspin");
-            pref.Value.text.alpha = 0f;
+            
         }
-        */
-        /* 設計中クラスのテスト
-        infoTest = new InfoEffect(
-            prefab,
-            this.transform,
-            "Texture/Prefecture/Image/kagoshima2",
-            "effectTest",
-            Vector2.zero,
-            new Vector2(128, 128),
-            300
-            );
         */
     }
 
     // 毎フレーム呼び出されるテスト用メソッド
     void updateTest()
     {
-        //prefTable["iwate"].image.pos += Vector2.right;
         
-
-        if (tick == 100)
+        if (tick == 30)
         {
-            //puzzle.path = "Texture/Prefecture/Image/saitama1";
-            //puzzle.name = "hoge";
-        }
-        if (tick % 200 == 0)
-        {
-            /*
-                foreach (KeyValuePair<string, Prefecture> pref in prefTable)
-                {
-                    pref.Value.image.playAnimation("Animation/Yspin");
-                }
-            */
-            //prefTable["iwate"].image.path = "Texture/Prefecture/Image/kagoshima2";
-            //puzzle.deltaAlpha = 0.02f;
-        }
-        else if (tick % 200 == 100)
-        {
-            //prefTable["iwate"].image.path = "Texture/Prefecture/Image/okinawa2";
-            //puzzle.deltaAlpha = -0.02f;
+            rippleAdd(prefab,
+                      this.transform,
+                      "Texture/Prefecture/Image2/okinawa2",
+                      "rippleTest",
+                      new Vector2(-100f, 0f),
+                      600,
+                      3,
+                      60,
+                      -0.007f,
+                      0.17f * Vector2.one);
         }
 
+        if (tick % 400 == 0)
+        {
+            effectAdd(prefab,
+                      this.transform,
+                      "Effect/testEffect/",
+                      "effectTest",
+                      new Vector2(100f, 0f),
+                      20 * Vector2.one,
+                      600,
+                      8);
+        }
+        else if (tick % 400 == 200)
+        {
+            
+        }
+        
+    }
+
+    public void rippleAdd(GameObject prefab,
+                          Transform parent,
+                          string imagePath,
+                          string name,
+                          Vector2 pos,
+                          int order,
+                          int popTime,
+                          int popTerm,
+                          float deltaAlpha,
+                          Vector2 deltaScale)
+    {
+        Debug.Log("rippleAdd!");
+        Ripple tmp = new Ripple(prefab,
+                    this.transform,
+                    "Texture/Prefecture/Image2/okinawa2",
+                    "test",
+                    pos,
+                    order,
+                    popTime,
+                    popTerm,
+                    deltaAlpha,
+                    deltaScale);
+        rippleList.Add(tmp);
+    }
+
+    public void effectAdd(GameObject prefab,
+                          Transform parent,
+                          string imagePath,
+                          string name,
+                          Vector2 pos,
+                          Vector2 scale,
+                          int order,
+                          int interval)
+    {
+        Effect tmp = new Effect(prefab,
+                                this.transform,
+                                imagePath,
+                                name,
+                                pos,
+                                scale,
+                                order,
+                                4);
+        effectList.Add(tmp);
     }
 }
