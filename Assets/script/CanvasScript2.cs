@@ -209,10 +209,8 @@ public class CanvasScript2 : MonoBehaviour
 
         public void playAnimation(string pathAnimationClip)
         {
-            //AnimationClip clip = (AnimationClip)AnimationClip.Instantiate(Resources.Load(DefineGeneralImage.PATH_ANIMATION));
             string path = DefineGeneralImage.PATH_ANIMATION + "Yspin";
             Object tmp = clipStore.get(path);
-            //Debug.Log(tmp);
             AnimationClip clip = (AnimationClip)AnimationClip.Instantiate(tmp);
             animation.AddClip(clip, path);
             animation.Play(path);
@@ -231,14 +229,16 @@ public class CanvasScript2 : MonoBehaviour
     {
         public GeneralImage image;
         public GeneralImage text;
+        public GeneralImage edge;
         //public GeneralImage imageback;
         Vector2 textOffset = new Vector2(DefineCanvasScript.INIT_TEXT_OFFSET_X,
                                          DefineCanvasScript.INIT_TEXT_OFFSET_Y);
-
+        
         public Prefecture(GameObject prefab,
                           Transform parent,
                           string imagePath,
                           string textPath,
+                          string edgePath,
                           string name,
                           Vector2 pos,
                           Vector2 imageScale,
@@ -258,6 +258,40 @@ public class CanvasScript2 : MonoBehaviour
                                     textOffset,
                                     textScale,
                                     100);
+            switch (name) {
+                case "gunma":
+                case "saitama":
+                case "okayama":
+                case "okinawa":
+                    edge = new GeneralImage(prefab,
+                                            parent,
+                                            "Texture/Prefecture/edge/kagawa",
+                                            "dummyEdge",
+                                            new Vector2(0.5f, -22.7f),
+                                            35 * Vector2.one,
+                                            100);
+                    break;
+                default:
+                    edge = new GeneralImage(prefab,
+                                            parent,
+                                            edgePath,
+                                            name + "Edge",
+                                            new Vector2(0.5f, -22.7f),
+                                            35 * Vector2.one,
+                                            100);
+                    break;
+            }
+
+
+            Bounds b = edge.spriterenderer.bounds;
+            Vector2 c = new Vector2(b.center.x, b.center.y);
+            Vector2 s = b.size;
+            Vector2 p = new Vector2(-c.x / s.x + 0.5f, -c.y / s.y + 0.5f);
+            edge.pos = new Vector2((p.x - 0.5f) * 1192 * 594 / 1701 + 0.9f,
+                                                      (p.y - 0.5f) * 594 -45.5f);
+            if (name == "hokkaido") {
+                edge.pos += new Vector2(-3.6f, 0.05f);
+            }
             /*
             imageback = new GeneralImage(prefab,
                                          parent,
@@ -347,15 +381,15 @@ public class CanvasScript2 : MonoBehaviour
         string imagePath;
         string name;
         Vector2 pos;
-        //Vector2 scale;
+        Vector2 scale;
         int order;
-        //int popTerm;
-
+        
         public Ripple(GameObject prefab,
                       Transform parent,
                       string imagePath,
                       string name,
                       Vector2 pos,
+                      Vector2 scale,
                       int order,
                       int popTime,
                       int popTerm,
@@ -368,7 +402,7 @@ public class CanvasScript2 : MonoBehaviour
             this.imagePath = imagePath;
             this.name = "ripple_" + name;
             this.pos = pos;
-            //scale = Vector2.zero;
+            this.scale = scale;
             this.order = order;
             this.popTime = popTime;
             this.popTerm = popTerm;
@@ -383,7 +417,7 @@ public class CanvasScript2 : MonoBehaviour
                                     imagePath,
                                     name + id.ToString(),
                                     pos,
-                                    Vector2.zero,
+                                    scale,
                                     order + id);
             template.alpha = 1f;
             imgList.Add(template);
@@ -435,7 +469,7 @@ public class CanvasScript2 : MonoBehaviour
                                         DefineCanvasScript.INIT_PUZZLE_SCALE_Y),
                             0);
         puzzle.alpha = 1f;
-
+        
         //init prefecture
         initPrefecture();
     }
@@ -492,6 +526,7 @@ public class CanvasScript2 : MonoBehaviour
                 this.transform,
                 DefineCanvasScript.PATH_PREFECTURE_IMAGE + values[0] + "1",
                 DefineCanvasScript.PATH_PREFECTURE_TEXT + values[0],
+                "Texture/Prefecture/edge/" + values[0],
                 values[0],
                 new Vector2(int.Parse(values[1]), int.Parse(values[2])),
                 imageSize,
@@ -499,6 +534,7 @@ public class CanvasScript2 : MonoBehaviour
                 );
             tmp.text.objP.transform.SetParent(tmp.image.objP.GetComponent<Transform>(), false);
             prefTable.Add(values[0], tmp);
+            
         }
 
         initTest();
@@ -506,7 +542,6 @@ public class CanvasScript2 : MonoBehaviour
     
     // テスト用メソッド
     void initTest() {
-        // アニメーションのテスト
         /*
         foreach (KeyValuePair<string, Prefecture> pref in prefTable)
         {
@@ -518,37 +553,31 @@ public class CanvasScript2 : MonoBehaviour
     // 毎フレーム呼び出されるテスト用メソッド
     void updateTest()
     {
-        
         if (tick == 30)
         {
-            rippleAdd(prefab,
-                      this.transform,
-                      "Texture/Prefecture/Image2/okinawa2",
-                      "rippleTest",
-                      new Vector2(-100f, 0f),
-                      600,
-                      3,
-                      60,
-                      -0.007f,
-                      0.17f * Vector2.one);
+            string[] sample = new string[] {"hokkaido", "iwate", "tochigi", "kagawa", "kagoshima" };
+            for (int i = 0; i < 5; i++) {
+                rippleAdd(prefab,
+                          this.transform,
+                          "Texture/Prefecture/edge/" + prefTable[sample[i]].image.name,
+                          prefTable[sample[i]].edge.name,
+                          prefTable[sample[i]].edge.pos,
+                          prefTable[sample[i]].edge.scale,
+                          600,
+                          4,
+                          40,
+                          -0.01f,
+                          0.9f * Vector2.one);
+            }
         }
-
+        /*
         if (tick % 400 == 0)
         {
-            effectAdd(prefab,
-                      this.transform,
-                      "Effect/testEffect/",
-                      "effectTest",
-                      new Vector2(100f, 0f),
-                      20 * Vector2.one,
-                      600,
-                      8);
         }
         else if (tick % 400 == 200)
         {
-            
         }
-        
+        */
     }
 
     public void rippleAdd(GameObject prefab,
@@ -556,18 +585,19 @@ public class CanvasScript2 : MonoBehaviour
                           string imagePath,
                           string name,
                           Vector2 pos,
+                          Vector2 scale,
                           int order,
                           int popTime,
                           int popTerm,
                           float deltaAlpha,
                           Vector2 deltaScale)
     {
-        Debug.Log("rippleAdd!");
         Ripple tmp = new Ripple(prefab,
                     this.transform,
-                    "Texture/Prefecture/Image2/okinawa2",
-                    "test",
+                    imagePath,
+                    name,
                     pos,
+                    scale,
                     order,
                     popTime,
                     popTerm,
