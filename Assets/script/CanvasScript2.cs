@@ -8,7 +8,8 @@ public class CanvasScript2 : MonoBehaviour
 {
     public GameObject prefab;
     public Dictionary<string, Prefecture> prefTable = new Dictionary<string, Prefecture>();
-    public GeneralImage puzzle;
+    //public GeneralImage puzzle;
+    string[] prefName = new string[47];
     int tick = 0;
     
     public static class DefineGeneralImage
@@ -258,31 +259,15 @@ public class CanvasScript2 : MonoBehaviour
                                     textOffset,
                                     textScale,
                                     100);
-            switch (name) {
-                case "gunma":
-                case "saitama":
-                case "okayama":
-                case "okinawa":
-                    edge = new GeneralImage(prefab,
-                                            parent,
-                                            "Texture/Prefecture/edge/kagawa",
-                                            "dummyEdge",
-                                            new Vector2(0.5f, -22.7f),
-                                            35 * Vector2.one,
-                                            100);
-                    break;
-                default:
-                    edge = new GeneralImage(prefab,
-                                            parent,
-                                            edgePath,
-                                            name + "Edge",
-                                            new Vector2(0.5f, -22.7f),
-                                            35 * Vector2.one,
-                                            100);
-                    break;
-            }
-
-
+            
+            edge = new GeneralImage(prefab,
+                                    parent,
+                                    edgePath,
+                                    name + "Edge",
+                                    new Vector2(0.5f, -22.7f),
+                                    35 * Vector2.one,
+                                    100);
+            
             Bounds b = edge.spriterenderer.bounds;
             Vector2 c = new Vector2(b.center.x, b.center.y);
             Vector2 s = b.size;
@@ -291,6 +276,15 @@ public class CanvasScript2 : MonoBehaviour
                                                       (p.y - 0.5f) * 594 -45.5f);
             if (name == "hokkaido") {
                 edge.pos += new Vector2(-3.6f, 0.05f);
+            }
+            switch (name)
+            {
+                case "gunma":
+                case "saitama":
+                case "toyama":
+                case "okinawa":
+                    edge.pos += new Vector2(0f, 3f);
+                    break;
             }
             /*
             imageback = new GeneralImage(prefab,
@@ -310,6 +304,7 @@ public class CanvasScript2 : MonoBehaviour
         int count = 0;
         int currentImage = 1;
         int interval;
+        string type;
         bool endFlag = false;
         public override string path {
             get;
@@ -323,7 +318,8 @@ public class CanvasScript2 : MonoBehaviour
                         Vector2 pos,
                         Vector2 scale,
                         int order,
-                        int interval) : base(
+                        int interval,
+                        string type) : base(
                         prefab,
                         parent,
                         path,
@@ -332,12 +328,9 @@ public class CanvasScript2 : MonoBehaviour
                         scale,
                         order) {
             this.interval = interval;
-            
-            //Debug.Log(path + "1");
-            spriterenderer.sprite = spriteStore.get(path + "1");
-            //int i = 1;
-            //while (System.IO.File.Exists(path+i.ToString())) i++;
-            
+            this.type = type;
+            //spriterenderer.sprite = spriteStore.get(path + "1");
+            spriterenderer.sprite = spriteStore.get(convertNumberToFile(path, currentImage));
         }
 
         public void updateEffect()
@@ -346,7 +339,8 @@ public class CanvasScript2 : MonoBehaviour
             if (count >= interval){
                 count = 0;
                 currentImage++;
-                Sprite tmp = spriteStore.get(path + currentImage.ToString());
+                //Sprite tmp = spriteStore.get(path + currentImage.ToString());
+                Sprite tmp = spriteStore.get(convertNumberToFile(path, currentImage));
                 if (tmp == null)
                 {
                     Destroy(obj);
@@ -356,12 +350,34 @@ public class CanvasScript2 : MonoBehaviour
                     endFlag = true;
                     return;
                 }
-                spriterenderer.sprite = spriteStore.get(path + currentImage.ToString());
+                //spriterenderer.sprite = spriteStore.get(path + currentImage.ToString());
+                spriterenderer.sprite = spriteStore.get(convertNumberToFile(path, currentImage));
             }
         }
 
         public bool getEndFlag() {
             return endFlag;
+        }
+
+        string convertNumberToFile(string path, int num) {
+            string str = path;
+            switch (type)
+            {
+                case "kirakira":
+                    num--;
+                    str += "img_000";
+                    if (num < 10)
+                    {
+                        str += "0";
+                    }
+                    str += num.ToString();
+                    break;
+                default:
+                    str += num.ToString();
+                    break;
+            }
+            Debug.Log(str);
+            return str;
         }
     }
     
@@ -454,10 +470,57 @@ public class CanvasScript2 : MonoBehaviour
         }
     }
 
+    public AudioManage audioManage = new AudioManage();
+    public class AudioManage {
+        GameObject parentObj;
+        AudioSource bgm;
+        public float bgmVolume
+        {
+            get {
+                return bgm.volume;
+            }
+            set {
+                bgm.volume = Mathf.Clamp01(value);
+            }
+        }
+        List<AudioSource> sound = new List<AudioSource>();
+        
+        public void playBGM(string bgmPath) {
+            bgm.clip = Resources.Load<AudioClip>(bgmPath);
+            bgm.Play();
+        }
+
+        public void playSound(string soundPath, float volume) {
+            AudioClip clip = Resources.Load<AudioClip>(soundPath);
+            AudioSource tmp = parentObj.AddComponent<AudioSource>();
+            tmp.clip = clip;
+            tmp.volume = volume;
+            tmp.Play();
+            sound.Add(tmp);
+        }
+        
+        public void init(GameObject parentObj){
+            this.parentObj = parentObj;
+            bgm = parentObj.AddComponent<AudioSource>();
+            bgm.loop = true; 
+        }
+
+        public void update() {
+            for (int i = 0; i < sound.Count; i++) {
+                if (!sound[i].isPlaying) {
+                    Destroy(sound[i]);
+                    sound.Remove(sound[i]);
+                    i--;
+                }
+            }
+        }
+    }
+
     // Use this for initialization
     void Start()
     {
         // init puzzle
+        /*
         puzzle = new GeneralImage(
                             prefab,
                             this.transform,
@@ -469,9 +532,12 @@ public class CanvasScript2 : MonoBehaviour
                                         DefineCanvasScript.INIT_PUZZLE_SCALE_Y),
                             0);
         puzzle.alpha = 1f;
-        
-        //init prefecture
+        */
         initPrefecture();
+        
+        audioManage.init(gameObject);
+        
+        initTest();
     }
 
     // Update is called once per frame
@@ -484,7 +550,7 @@ public class CanvasScript2 : MonoBehaviour
             pref.Value.image.alpha += pref.Value.image.deltaAlpha;
             pref.Value.text.alpha += pref.Value.text.deltaAlpha;
         }
-        puzzle.alpha += puzzle.deltaAlpha;
+        //puzzle.alpha += puzzle.deltaAlpha;
 
         // ripple update
         for (int i = 0; i < rippleList.Count; i++) {
@@ -502,6 +568,8 @@ public class CanvasScript2 : MonoBehaviour
                 effectList.Remove(effectList[i]);
             }
         }
+
+        audioManage.update();
 
         updateTest();
     }
@@ -534,14 +602,18 @@ public class CanvasScript2 : MonoBehaviour
                 );
             tmp.text.objP.transform.SetParent(tmp.image.objP.GetComponent<Transform>(), false);
             prefTable.Add(values[0], tmp);
-            
-        }
 
-        initTest();
+            prefName[i] = values[0];
+        }
     }
     
     // テスト用メソッド
-    void initTest() {
+    void initTest()
+    {
+        /*
+        audioManage.playBGM("Audio/BGM/Before_The_Wind");
+        audioManage.bgmVolume = 0.4f;
+        */
         /*
         foreach (KeyValuePair<string, Prefecture> pref in prefTable)
         {
@@ -550,11 +622,14 @@ public class CanvasScript2 : MonoBehaviour
         */
     }
 
+    int pn = 0;
     // 毎フレーム呼び出されるテスト用メソッド
     void updateTest()
     {
+
         if (tick == 30)
         {
+            /*
             string[] sample = new string[] {"hokkaido", "iwate", "tochigi", "kagawa", "kagoshima" };
             for (int i = 0; i < 5; i++) {
                 rippleAdd(prefab,
@@ -568,16 +643,44 @@ public class CanvasScript2 : MonoBehaviour
                           40,
                           -0.01f,
                           0.9f * Vector2.one);
+            }*/
+        }
+
+        const int term = 180;
+        if (tick % term == 0)
+        {
+            if (pn < 47)
+            {
+                effectAdd(prefab,
+                        this.transform,
+                        "Effect/kirakira/" + prefName[pn] + "/",
+                        "kirakira_" + prefName[pn],
+                        Vector2.zero,
+                        100 * Vector2.one,
+                        600,
+                        4,
+                        "kirakira");
+                pn++;
             }
+            /*
+            effectAdd(prefab,
+                    this.transform,
+                    "Effect/kirakira/iwate/",
+                    "kirakiraiwate",
+                    Vector2.zero,
+                    100*Vector2.one,
+                    400,
+                    8,
+                    "kirakira"
+                    );
+                    */
+            //audioManage.playSound("Audio/sesoa07", 0.5f);
         }
-        /*
-        if (tick % 400 == 0)
+        else if (tick % term == 5)
         {
+            //audioManage.playSound("Audio/sesoa07", 1.0f);
         }
-        else if (tick % 400 == 200)
-        {
-        }
-        */
+        
     }
 
     public void rippleAdd(GameObject prefab,
@@ -613,7 +716,8 @@ public class CanvasScript2 : MonoBehaviour
                           Vector2 pos,
                           Vector2 scale,
                           int order,
-                          int interval)
+                          int interval,
+                          string type)
     {
         Effect tmp = new Effect(prefab,
                                 this.transform,
@@ -622,7 +726,8 @@ public class CanvasScript2 : MonoBehaviour
                                 pos,
                                 scale,
                                 order,
-                                4);
+                                interval,
+                                type);
         effectList.Add(tmp);
     }
 }
